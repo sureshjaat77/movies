@@ -28,8 +28,6 @@ CHANNELS = [int(ch) if id_pattern.search(ch) else ch for ch in environ.get('CHAN
 DATABASE_URI = environ.get('DATABASE_URI', "mongodb+srv://sureshjaat2612:dilip261210@ssd.7oyrv.mongodb.net/?retryWrites=true&w=majority&appName=SSD")
 DATABASE_NAME = environ.get('DATABASE_NAME', "ssdmovies")
 COLLECTION_NAME = environ.get('COLLECTION_NAME', 'Telegram_files')
-# OpenAI API Key
-OPENAI_API_KEY = "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"
 #---------------------------------------------------------------
 #---------------------------------------------------------------
 #----------- There will be channel id add in all these ---------
