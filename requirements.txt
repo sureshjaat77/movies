@@ -50,3 +50,7 @@ apscheduler
 pyshorteners 
 pyromod 
 colorama
+
+openai
+pymongo
+python-telegram-bot
