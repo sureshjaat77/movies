@@ -15,3 +15,5 @@ def ask_openai(query):
         return response['choices'][0]['message']['content']
     except Exception as e:
         return "Sorry, I couldn't process your request."
+
+
