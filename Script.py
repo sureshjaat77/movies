@@ -1,6 +1,6 @@
 import os
 class script(object):
-    from telegram.ext import Updater, MessageHandler, 
+    from telegram.ext import Updater, MessageHandler
 
 # Function to welcome new members
 def welcome(update, context):
