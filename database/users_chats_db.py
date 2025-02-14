@@ -123,7 +123,9 @@ class Database:
         return count
     
     async def get_all_chats(self):
-        return self.grp.find({})
+    groups_cursor = self.col.find({})
+    groups = await groups_cursor.to_list(length=None)
+    return groups
 
     async def get_db_size(self):
         return (await mydb.command("dbstats"))['dataSize'] 
