@@ -90,7 +90,9 @@ class Database:
         return count
     
     async def get_all_users(self):
-        return self.col.find({})
+    users_cursor = self.col.find({})  # MongoDB Cursor मिलेगा
+    users = await users_cursor.to_list(length=None)  # इसे List में बदलें
+    return users
 
     async def delete_user(self, user_id):
         await self.col.delete_many({'id': int(user_id)})
@@ -121,7 +123,9 @@ class Database:
         return count
     
     async def get_all_chats(self):
-        return self.grp.find({})
+    groups_cursor = self.col.find({})
+    groups = await groups_cursor.to_list(length=None)
+    return groups
 
     async def get_db_size(self):
         return (await mydb.command("dbstats"))['dataSize'] 
