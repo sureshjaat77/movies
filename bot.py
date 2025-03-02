@@ -43,7 +43,11 @@ from Jisshu.bot.clients import initialize_clients
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
 JisshuBot.start()
-loop = asyncio.get_event_loop()
+try:
+    loop = asyncio.get_running_loop()  # पहले से चल रहे event loop को लो
+except RuntimeError:
+    loop = asyncio.new_event_loop()  # अगर नहीं है तो नया बनाओ
+    asyncio.set_event_loop(loop)  # और इसे active loop बनाओ
 
 
 async def Jisshu_start():
