@@ -117,35 +117,9 @@ async def get_search_results(query, max_results=MAX_BTN, offset=0, lang=None):
         next_offset = ''       
     return files, next_offset, total_results
     
-async def get_bad_files(query, file_type=None, offset=0, filter=False):
-    query = query.strip()
-    if not query:
-        raw_pattern = '.'
-    elif ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
-    else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_]')
-    
-    try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except re.error as e:
-        logger.error(f"Invalid regex pattern: {e}")
-        return []
-
-    filter = {'file_name': regex}
-    if file_type:
-        filter['file_type'] = file_type
-    total_results = await Media.count_documents(filter)
-    cursor = Media.find(filter)
-    cursor.sort('$natural', -1)
-    files = await cursor.to_list(length=total_results)
-    return files, total_results
-    
-async def get_file_details(query):
-    filter = {'file_id': query}
-    cursor = Media.find(filter)
-    filedetails = await cursor.to_list(length=1)
-    return filedetails
+async def get_all_files():
+    files = await movie_collection.find({}, {"file_name": 1, "_id": 0}).to_list(None)
+    return files
 
 def encode_file_id(s: bytes) -> str:
     r = b""
