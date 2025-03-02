@@ -8,7 +8,9 @@ from umongo import Instance, Document, fields
 from motor.motor_asyncio import AsyncIOMotorClient
 from marshmallow.exceptions import ValidationError
 from info import DATABASE_URI, DATABASE_NAME, COLLECTION_NAME, MAX_BTN
-
+from rapidfuzz import process, fuzz
+import re
+from database.ia_filterdb import Media
 # Set up logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -117,30 +119,38 @@ async def get_search_results(query, max_results=MAX_BTN, offset=0, lang=None):
         next_offset = ''       
     return files, next_offset, total_results
     
+
+
 async def get_bad_files(query, file_type=None, offset=0, filter=False):
     query = query.strip()
     if not query:
-        raw_pattern = '.'
-    elif ' ' not in query:
-        raw_pattern = r'(\b|[\.\+\-_])' + query + r'(\b|[\.\+\-_])'
-    else:
-        raw_pattern = query.replace(' ', r'.*[\s\.\+\-_]')
-    
-    try:
-        regex = re.compile(raw_pattern, flags=re.IGNORECASE)
-    except re.error as e:
-        logger.error(f"Invalid regex pattern: {e}")
-        return []
+        return [], 0
 
-    filter = {'file_name': regex}
-    if file_type:
-        filter['file_type'] = file_type
-    total_results = await Media.count_documents(filter)
-    cursor = Media.find(filter)
-    cursor.sort('$natural', -1)
-    files = await cursor.to_list(length=total_results)
-    return files, total_results
+    # ✅ Step 1: Fetch all movie names from the database
+    all_files = await Media.find({}, {"file_name": 1, "file_type": 1, "_id": 0}).to_list(None)
     
+    if not all_files:
+        return [], 0
+
+    file_names_list = [file["file_name"] for file in all_files]  # 🎯 List of all file names
+
+    # ✅ Step 2: Use **Fuzzy Search** to find best matches
+    matched_files = process.extract(query, file_names_list, scorer=fuzz.partial_ratio, limit=15, score_cutoff=60)
+
+    if not matched_files:
+        return [], 0
+
+    # ✅ Step 3: Filter results based on file type (if needed)
+    filtered_files = [all_files[file_names_list.index(match[0])] for match in matched_files]
+
+    if file_type:
+        filtered_files = [file for file in filtered_files if file.get("file_type") == file_type]
+
+    total_results = len(filtered_files)
+    
+    return filtered_files, total_results
+
+
 async def get_file_details(query):
     filter = {'file_id': query}
     cursor = Media.find(filter)
