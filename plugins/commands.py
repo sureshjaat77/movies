@@ -15,6 +15,7 @@ from database.users_chats_db import db
 from database.config_db import mdb
 from database.topdb import JsTopDB
 from database.jsreferdb import referdb
+from rapidfuzz import process
 from utils import formate_file_name,  get_settings, save_group_settings, is_req_subscribed, get_size, get_shortlink, is_check_admin, get_status, temp, get_readable_time
 import re
 from pyrogram import Client, filters, enums
@@ -569,31 +570,50 @@ async def send_request(bot, message):
     ]]
     await message.reply_text("<b>✅ sᴜᴄᴄᴇꜱꜱғᴜʟʟʏ ʏᴏᴜʀ ʀᴇǫᴜᴇꜱᴛ ʜᴀꜱ ʙᴇᴇɴ ᴀᴅᴅᴇᴅ, ᴘʟᴇᴀꜱᴇ ᴡᴀɪᴛ ꜱᴏᴍᴇᴛɪᴍᴇ...</b>", reply_markup=InlineKeyboardMarkup(btn))
 
+
+
 @Client.on_message(filters.command("search"))
 async def search_files(bot, message):
     if message.from_user.id not in ADMINS:
         await message.reply('Only the bot owner can use this command... 😑')
         return
+
     chat_type = message.chat.type
     if chat_type != enums.ChatType.PRIVATE:
         return await message.reply_text(f"<b>Hey {message.from_user.mention}, this command won't work in groups. It only works in my PM!</b>")  
+
     try:
-        keyword = message.text.split(" ", 1)[1]
+        keyword = message.text.split(" ", 1)[1]  # User के द्वारा दिया गया keyword
     except IndexError:
         return await message.reply_text(f"<b>Hey {message.from_user.mention}, give me a keyword along with the command to delete files.</b>")
-    files, total = await get_bad_files(keyword)
-    if int(total) == 0:
+
+    # Database से सभी मूवी टाइटल्स निकालो
+    all_files = await get_all_files()  # यह एक function होगा जो आपकी database से सभी files निकालेगा
+    file_names_list = [file["file_name"] for file in all_files]  # सिर्फ नाम निकालो
+
+    # **Fuzzy Search का इस्तेमाल करके मिलते-जुलते नाम निकालें**
+    matched_files = process.extract(keyword, file_names_list, limit=10, score_cutoff=60)
+
+    if not matched_files:
         await message.reply_text('<i>I could not find any files with this keyword 😐</i>')
         return 
+
+    # **Final Matching Files का डेटा बनाओ**
+    files = [all_files[file_names_list.index(match[0])] for match in matched_files]
+    total = len(files)
+    
     file_names = "\n\n".join(f"{index + 1}. {item['file_name']}" for index, item in enumerate(files))
     file_data = f"🚫 Your search - '{keyword}':\n\n{file_names}"    
+
     with open("file_names.txt", "w" , encoding='utf-8') as file:
         file.write(file_data)
+
     await message.reply_document(
         document="file_names.txt",
-        caption=f"<b>♻️ ʙʏ ʏᴏᴜʀ ꜱᴇᴀʀᴄʜ, ɪ ꜰᴏᴜɴᴅ - <code>{total}</code> ꜰɪʟᴇs</b>",
+        caption=f"<b>♻️ By your search, I found - <code>{total}</code> files</b>",
         parse_mode=enums.ParseMode.HTML
     )
+
     os.remove("file_names.txt")
 
 @Client.on_message(filters.command("deletefiles"))
